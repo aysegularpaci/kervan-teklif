@@ -1,0 +1,2 @@
+import {beforeEach,describe,expect,it} from 'vitest';import {clearAll,loadCompany,loadQuotes,saveCompany,saveQuotes} from './storage';
+describe('storage',()=>{beforeEach(()=>{localStorage.clear()});it('persists data and survives malformed JSON',()=>{saveCompany({name:'Kervan',phone:'',email:'',address:'',taxOffice:'',taxNumber:''});saveQuotes([]);expect(loadCompany()?.name).toBe('Kervan');localStorage.setItem('kervan-teklif:v1:quotes','{broken');expect(loadQuotes()).toEqual([]);clearAll();expect(loadCompany()).toBeNull()})});

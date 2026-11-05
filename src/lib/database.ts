@@ -1,0 +1,16 @@
+import { openDB } from 'idb';
+import type { CatalogItem, CompanySettings, CustomerRecord, Quote } from '../types';
+
+const NAME='kervan-teklif'; const VERSION=1; const MIGRATION='kervan-teklif:v2:migrated';
+const assertRecords=(values:unknown[],group:string)=>{if(!Array.isArray(values)||values.some(value=>!value||typeof value!=='object'||typeof (value as {id?:unknown}).id!=='string'||!(value as {id:string}).id.trim()))throw new Error(`${group} kayıtları geçersiz.`)};
+export const db=()=>openDB(NAME,VERSION,{upgrade(database){for(const name of ['company','quotes','customers','catalog','settings'])if(!database.objectStoreNames.contains(name))database.createObjectStore(name,{keyPath:'id'})}});
+export async function migrateLegacy(){if(localStorage.getItem(MIGRATION))return;const database=await db();const companyRaw=localStorage.getItem('kervan-teklif:v1:company'),quotesRaw=localStorage.getItem('kervan-teklif:v1:quotes');try{const tx=database.transaction(['company','quotes'],'readwrite');if(companyRaw){const company=JSON.parse(companyRaw) as CompanySettings;await tx.objectStore('company').put({id:'primary',...company})}if(quotesRaw){const quotes=JSON.parse(quotesRaw);if(Array.isArray(quotes))for(const quote of quotes)if(quote?.id)await tx.objectStore('quotes').put(quote)}await tx.done;localStorage.setItem(MIGRATION,'1')}catch(error){throw new Error('Eski veriler IndexedDB’ye taşınamadı; localStorage kayıtları korunuyor.') }}
+export const repository={
+ company:async()=>((await db()).get('company','primary') as Promise<(CompanySettings&{id:string})|undefined>),
+ saveCompany:async(value:CompanySettings)=>(await db()).put('company',{id:'primary',...value}),
+ quotes:async()=>((await db()).getAll('quotes') as Promise<Quote[]>), saveQuote:async(value:Quote)=>(await db()).put('quotes',value), deleteQuote:async(id:string)=>(await db()).delete('quotes',id),
+ customers:async()=>((await db()).getAll('customers') as Promise<CustomerRecord[]>),saveCustomer:async(value:CustomerRecord)=>(await db()).put('customers',value),deleteCustomer:async(id:string)=>(await db()).delete('customers',id),
+ catalog:async()=>((await db()).getAll('catalog') as Promise<CatalogItem[]>),saveCatalog:async(value:CatalogItem)=>(await db()).put('catalog',value),deleteCatalog:async(id:string)=>(await db()).delete('catalog',id),
+ exportAll:async()=>{const database=await db();const [company,quotes,customers,catalog,settings]=await Promise.all([database.getAll('company'),database.getAll('quotes'),database.getAll('customers'),database.getAll('catalog'),database.getAll('settings')]);return {version:2,exportedAt:new Date().toISOString(),company,quotes,customers,catalog,settings}},
+ replaceAll:async(data:{company:unknown[];quotes:unknown[];customers:unknown[];catalog:unknown[];settings?:unknown[]})=>{const groups={company:data.company,quotes:data.quotes,customers:data.customers,catalog:data.catalog,settings:data.settings||[]};for(const [name,values] of Object.entries(groups))assertRecords(values,name);const database=await db();const names=['company','quotes','customers','catalog','settings'] as const;const tx=database.transaction([...names],'readwrite');try{for(const name of names){const store=tx.objectStore(name);await store.clear();for(const value of groups[name])await store.put(value)}await tx.done}catch(error){try{tx.abort()}catch{}throw error}}
+};

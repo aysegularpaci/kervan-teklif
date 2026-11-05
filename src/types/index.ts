@@ -1,0 +1,10 @@
+export type CompanySettings={name:string;phone:string;email:string;address:string;taxOffice:string;taxNumber:string;logo?:string;website?:string;contactName?:string;contactTitle?:string;iban?:string;bankName?:string;showBankDetails?:boolean;signature?:string;stamp?:string;showSignature?:boolean};
+export type Customer={name:string;phone:string;email:string;address:string};
+export type CustomerRecord=Customer & {id:string;type:'Bireysel'|'Kurumsal';contactName?:string;taxOffice?:string;taxNumber?:string;notes?:string;createdAt:string;updatedAt:string};
+export type CatalogItem={id:string;name:string;description:string;type:'Ürün'|'Hizmet';unit:Unit;unitPrice:string;vatRate:'0'|'1'|'10'|'20';discountRate:string;createdAt:string;updatedAt:string};
+export type QuoteStatus='Taslak'|'Gönderildi'|'Kabul Edildi'|'Reddedildi';
+export type Unit='Adet'|'Saat'|'Gün'|'Hizmet';
+export type QuoteItem={id:string;description:string;quantity:string;unit:Unit;unitPrice:string;discountRate:string;vatRate:'0'|'1'|'10'|'20'};
+export type Quote={id:string;number:string;issueDate:string;validUntil:string;company:CompanySettings;customer:Customer;items:QuoteItem[];notes:string;terms:string;subject?:string;description?:string;deliveryTime?:string;warrantyTerms?:string;otherTerms?:string;preparedBy?:string;status?:QuoteStatus;template?:'modern'|'minimal'|'corporate'|'premium';accentColor?:string;createdAt:string;updatedAt:string};
+export type ItemTotals={gross:string;discount:string;net:string;vat:string;total:string};
+export type QuoteTotals={gross:string;discount:string;net:string;vat:string;total:string;items:ItemTotals[]};
